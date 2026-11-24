@@ -1,0 +1,27 @@
+{
+  "python": "3.10.16",
+  "sistema": "Linux 4.19.0-gvisor",
+  "arquitectura": "x86_64",
+  "nucleos": 8,
+  "tamanos": [
+    6,
+    10,
+    14,
+    18,
+    120,
+    300,
+    600,
+    1100,
+    1600
+  ],
+  "alfabeto": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E"
+  ],
+  "semilla": 4096,
+  "repeticiones": 3,
+  "timeout_a_seg": 8.0
+}
