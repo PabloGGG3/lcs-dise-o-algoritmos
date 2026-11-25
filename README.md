@@ -8,7 +8,7 @@ Implementación desde cero en Python de tres enfoques para resolver el problema 
 
 ## Requisitos
 
-- Python 3.12.10 (el cálculo de LCS y las mediciones solo emplean la biblioteca estándar).
+- Python 3.13.14 (el cálculo de LCS y las mediciones solo emplean la biblioteca estándar).
 - `matplotlib` (opcional, únicamente para generar la gráfica comparativa si no se tiene instalada no generará la gráfica).
 
 ## Ejecución con un único comando
