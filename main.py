@@ -1,5 +1,3 @@
-"""Punto de entrada único del proyecto (pruebas unitarias + experimentos + gráficas)."""
-
 import subprocess
 import sys
 from benchmark import ejecutar_benchmark

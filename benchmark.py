@@ -1,5 +1,3 @@
-"""Script de experimentación: genera datasets, mide tiempo de CPU, memoria pico y operaciones."""
-
 from __future__ import annotations
 
 import csv
@@ -18,15 +16,13 @@ from algoritmos import lcs_dinamica, lcs_hirschberg, lcs_recursiva
 
 TAMANOS = [6, 10, 14, 18, 120, 300, 600, 1100, 1600]
 ALFABETO = ["A", "B", "C", "D", "E"]
-SEMILLA = 4096
 REPETICIONES = 3
 TIMEOUT_VERS_A_SEG = 8.0
 
 
 def generar_y_guardar_datos(carpeta: str = "datos") -> List[Tuple[int, str, str]]:
-    """Genera las parejas de cadenas con semilla fija y las guarda en disco."""
     os.makedirs(carpeta, exist_ok=True)
-    rng = random.Random(SEMILLA)
+    rng = random.Random(4096)
     parejas: List[Tuple[int, str, str]] = []
 
     for n in TAMANOS:
@@ -41,9 +37,19 @@ def generar_y_guardar_datos(carpeta: str = "datos") -> List[Tuple[int, str, str]
     return parejas
 
 
+def guardar_entorno_json(ruta: str, entorno: Dict[str, object]) -> None:
+    lineas = ["{"]
+    items = list(entorno.items())
+    for idx, (clave, valor) in enumerate(items):
+        coma = "," if idx < len(items) - 1 else ""
+        valor_json = json.dumps(valor, ensure_ascii=False)
+        lineas.append(f'  "{clave}": {valor_json}{coma}')
+    lineas.append("}")
+    with open(ruta, "w", encoding="utf-8") as f:
+        f.write("\n".join(lineas) + "\n")
+
+
 def medir_cpu_ms(funcion: Callable[[str, str], str], cad_a: str, cad_b: str) -> float:
-    """Mide el tiempo de CPU en milisegundos usando la mediana de REPETICIONES."""
-    # Calibración para evitar ruido en ejecuciones muy cortas
     t0 = time.perf_counter()
     funcion(cad_a, cad_b)
     duracion_una = time.perf_counter() - t0
@@ -67,7 +73,6 @@ def medir_cpu_ms(funcion: Callable[[str, str], str], cad_a: str, cad_b: str) -> 
 
 
 def medir_memoria_kib(funcion: Callable[[str, str], str], cad_a: str, cad_b: str) -> float:
-    """Mide el pico de memoria adicional asignada por Python (en KiB) con tracemalloc."""
     gc.collect()
     tracemalloc.start()
     funcion(cad_a, cad_b)
@@ -77,7 +82,6 @@ def medir_memoria_kib(funcion: Callable[[str, str], str], cad_a: str, cad_b: str
 
 
 def medir_version_a_aislada(cad_a: str, cad_b: str, timeout_seg: float) -> Optional[Dict[str, float]]:
-    """Ejecuta la Versión A en un subproceso aislado para respetar el límite de tiempo."""
     codigo_hijo = f"""
 import gc, json, sys, time, tracemalloc
 sys.setrecursionlimit(10000)
@@ -86,7 +90,6 @@ from algoritmos import lcs_recursiva
 cad_a = {cad_a!r}
 cad_b = {cad_b!r}
 
-# Calibración
 t0 = time.perf_counter()
 res = lcs_recursiva(cad_a, cad_b)
 dur = time.perf_counter() - t0
@@ -135,7 +138,6 @@ print(json.dumps({{
 
 
 def generar_graficas(filas: List[Dict[str, object]], carpeta: str = "resultados") -> Optional[str]:
-    """Genera las gráficas comparativas en escala log-log usando matplotlib si está disponible."""
     try:
         import matplotlib.pyplot as plt
     except ImportError:
@@ -163,7 +165,6 @@ def generar_graficas(filas: List[Dict[str, object]], carpeta: str = "resultados"
 
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10.5, 4.3))
 
-    # Gráfica 1: Tiempo de CPU
     if ns_a:
         ax1.loglog(ns_a, cpu_a, marker="x", linestyle=":", color="#C0392B", linewidth=1.8, label="Versión A (recursiva)")
     if n_timeout is not None:
@@ -184,7 +185,6 @@ def generar_graficas(filas: List[Dict[str, object]], carpeta: str = "resultados"
     ax1.grid(True, which="both", linestyle="--", alpha=0.35)
     ax1.legend(fontsize=8.5)
 
-    # Gráfica 2: Memoria pico
     if ns_a:
         ax2.loglog(ns_a, mem_a, marker="x", linestyle=":", color="#C0392B", linewidth=1.8, label="Versión A (recursiva)")
     ax2.loglog(ns_all, mem_b, marker="s", linestyle="-", color="#1F618D", linewidth=1.8, label="Versión B (Hirschberg)")
@@ -215,14 +215,12 @@ def ejecutar_benchmark() -> List[Dict[str, object]]:
         "nucleos": os.cpu_count(),
         "tamanos": TAMANOS,
         "alfabeto": ALFABETO,
-        "semilla": SEMILLA,
         "repeticiones": REPETICIONES,
         "timeout_a_seg": TIMEOUT_VERS_A_SEG,
     }
-    with open(os.path.join("resultados", "entorno.json"), "w", encoding="utf-8") as f:
-        json.dump(entorno, f, indent=2, ensure_ascii=False)
+    guardar_entorno_json(os.path.join("resultados", "entorno.json"), entorno)
 
-    print("\n=== RESULTADOS EXPERIMENTALES (Tiempo CPU y Memoria Pico) ===")
+    print("\n=== TABLA 1: TIEMPO DE CPU Y MEMORIA PICO ===")
     cabecera = (
         f"{'n':>5} | {'CPU A (ms)':>11} | {'CPU B (ms)':>10} | {'CPU C (ms)':>10} | "
         f"{'Mem A (KiB)':>11} | {'Mem B (KiB)':>11} | {'Mem C (KiB)':>11}"
@@ -283,6 +281,19 @@ def ejecutar_benchmark() -> List[Dict[str, object]]:
                 "ratio_b_c": ratio_bc,
                 "long_lcs": len(res_c),
             }
+        )
+
+    print("\n=== TABLA 2: OPERACIONES (Llamadas recursivas en A; celdas evaluadas en B y C) ===")
+    cab_ops = (
+        f"{'n':>5} | {'Llamadas A':>12} | {'Celdas B':>10} | {'Celdas C':>10} | "
+        f"{'Ratio B/C':>9} | {'Long. LCS':>9}"
+    )
+    print(cab_ops)
+    print("-" * len(cab_ops))
+    for fila in filas:
+        print(
+            f"{fila['n']:>5} | {str(fila['llamadas_a']):>12} | {fila['celdas_b']:>10} | "
+            f"{fila['celdas_c']:>10} | {fila['ratio_b_c']:>9.2f} | {fila['long_lcs']:>9}"
         )
 
     csv_path = os.path.join("resultados", "resultados.csv")

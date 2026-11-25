@@ -1,12 +1,9 @@
-"""Batería de pruebas unitarias para validar las tres implementaciones de LCS."""
-
 import random
 import unittest
 from algoritmos import lcs_dinamica, lcs_hirschberg, lcs_recursiva
 
 
 def es_subsecuencia(candidata: str, texto: str) -> bool:
-    """Comprueba que todos los caracteres de candidata aparecen en texto en orden."""
     iterador = iter(texto)
     return all(simbolo in iterador for simbolo in candidata)
 
@@ -34,7 +31,6 @@ class TestAlgoritmosLCS(unittest.TestCase):
                 self.assertTrue(es_subsecuencia(res, cad_a))
                 self.assertTrue(es_subsecuencia(res, cad_b))
 
-            # A y C desempatan igual, así que deben devolver la misma cadena exacta
             self.assertEqual(res_a, res_c)
 
     def test_aleatorios_pequenos_tres_versiones(self) -> None:
